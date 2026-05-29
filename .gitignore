@@ -1,0 +1,23 @@
+# dependencies
+node_modules
+
+# build output
+dist
+dist-ssr
+
+# env files — never commit these
+.env
+.env.local
+.env.*.local
+
+# macOS
+.DS_Store
+
+# editor
+*.local
+.vscode/*
+!.vscode/extensions.json
+
+# logs
+*.log
+npm-debug.log*
