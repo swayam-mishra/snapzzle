@@ -22,6 +22,12 @@ dist-ssr
 .firebase/
 .firebaserc
 
+# TypeScript build cache
+*.tsbuildinfo
+
+# Firebase agent skills lock
+skills-lock.json
+
 # logs
 *.log
 npm-debug.log*

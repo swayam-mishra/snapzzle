@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "snapzzleplay",
     "public": "dist",
     "ignore": [
       "firebase.json",

@@ -15,4 +15,12 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['@mediapipe/tasks-vision'],
   },
+  css: {
+    postcss: {
+      plugins: [
+        (await import('tailwindcss')).default,
+        (await import('autoprefixer')).default,
+      ],
+    },
+  },
 });
