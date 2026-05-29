@@ -33,7 +33,7 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
   const [gameState, setGameState] = useState<GameState>('SCANNING');
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('lp-name') ?? '');
   const [personalBest, setPersonalBest] = useState<number | null>(() => {
-    const v = localStorage.getItem('lp-best'); return v ? parseInt(v, 10) : null;
+    const v = localStorage.getItem(`lp-best-${difficulty}`); return v ? parseInt(v, 10) : null;
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -76,7 +76,7 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
     localStorage.setItem('lp-name', name);
     if (personalBest === null || timeElapsed < personalBest) {
       setPersonalBest(timeElapsed);
-      localStorage.setItem('lp-best', String(timeElapsed));
+      localStorage.setItem(`lp-best-${difficulty}`, String(timeElapsed));
     }
     try {
       await addDoc(collection(db, 'leaderboard'), {
@@ -115,6 +115,9 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
     // ── SCANNING / LEADERBOARD ─────────────────────────────────
     if (gameState === 'SCANNING' || gameState === 'LEADERBOARD') {
       drawBg();
+      if (gameState === 'SCANNING' && results?.landmarks?.length !== 2) {
+        lastFrameRef.current = null;
+      }
       if (gameState === 'SCANNING' && results?.landmarks?.length === 2) {
         const [h1, h2] = results.landmarks;
         const d1 = Math.hypot(h1[8].x - h1[4].x, h1[8].y - h1[4].y);
