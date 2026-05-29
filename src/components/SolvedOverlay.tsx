@@ -1,6 +1,6 @@
 import React from 'react';
 import { Trophy, Timer, User, ArrowRight, RotateCcw, Loader2 } from 'lucide-react';
-import { CLR_YELLOW, CLR_RED, BG_DEEP, GRID, neo, neoBtn } from '../constants';
+import { CLR_PRIMARY, CLR_ACCENT, CLR_BG, CLR_SURFACE, CLR_TEXT, CLR_TEXT_MUTED, GRID, neo, neoBtn } from '../constants';
 import { LEADERBOARD_ENABLED } from '../lib/supabase';
 import { fmt } from '../utils/puzzle';
 import type { Difficulty } from '../types';
@@ -20,22 +20,26 @@ const SolvedOverlay: React.FC<Props> = ({
   time, difficulty, playerName, isSubmitting,
   onNameChange, onSubmit, onPlayAgain, onMenu,
 }) => (
-  <div className="absolute inset-0 flex flex-col items-center justify-center z-30" style={{ background: `${BG_DEEP}f0` }}>
-    <Trophy className="w-16 h-16 text-[#ffea00] mb-4" strokeWidth={1.5} />
-    <h2 className="text-5xl font-black text-white uppercase tracking-tight mb-3">Complete!</h2>
+  <div className="absolute inset-0 flex flex-col items-center justify-center z-30" style={{ background: `color-mix(in srgb, var(--clr-bg) 94%, transparent)`, backdropFilter: 'blur(4px)' }}>
+    <Trophy className="w-16 h-16 mb-4" strokeWidth={1.5} style={{ color: CLR_ACCENT }} />
+    <h2 className="text-5xl font-black uppercase tracking-tight mb-3" style={{ color: CLR_TEXT }}>Complete!</h2>
 
-    <div className={`flex items-center gap-3 text-black px-6 py-3 rounded-xl ${neo} mb-2`} style={{ background: CLR_YELLOW }}>
+    <div className={`flex items-center gap-3 px-6 py-3 rounded-xl ${neo} mb-2`} style={{ background: CLR_ACCENT, color: CLR_BG }}>
       <Timer className="w-5 h-5" />
       <span className="text-3xl font-black font-mono tracking-wider">{fmt(time)}</span>
     </div>
-    <p className="text-[#527cad] text-xs uppercase tracking-widest font-bold mb-8">{GRID[difficulty].desc}</p>
+    <p className="text-xs uppercase tracking-widest font-bold mb-8" style={{ color: CLR_TEXT_MUTED }}>
+      {GRID[difficulty].desc}
+    </p>
 
     {LEADERBOARD_ENABLED && (
       <div className="flex flex-col items-center gap-3 w-full max-w-xs px-6 mb-6">
-        <p className="text-[#527cad] text-[10px] uppercase tracking-widest font-bold">Submit to leaderboard</p>
-        <div className={`flex items-center gap-0 w-full bg-white rounded-xl overflow-hidden ${neo}`}>
+        <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: CLR_TEXT_MUTED }}>
+          Submit to leaderboard
+        </p>
+        <div className={`flex items-center w-full rounded-xl overflow-hidden ${neo}`} style={{ background: CLR_SURFACE }}>
           <div className="relative flex-1">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black/30" />
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-30" style={{ color: CLR_TEXT }} />
             <input
               type="text"
               placeholder="YOUR NAME"
@@ -44,14 +48,15 @@ const SolvedOverlay: React.FC<Props> = ({
               onChange={(e) => onNameChange(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
               autoFocus
-              className="w-full bg-transparent text-black text-center text-lg outline-none py-3 pl-8 pr-3 font-black uppercase placeholder:text-black/20 pointer-events-auto"
+              className="w-full bg-transparent text-center text-lg outline-none py-3 pl-8 pr-3 font-black uppercase placeholder:opacity-20 pointer-events-auto"
+              style={{ color: CLR_TEXT }}
             />
           </div>
           <button
             onClick={onSubmit}
             disabled={!playerName.trim() || isSubmitting}
-            className="text-white p-3 transition-colors pointer-events-auto border-l-[3px] border-black disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: CLR_RED }}
+            className="p-3 transition-colors pointer-events-auto border-l-[3px] disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: CLR_PRIMARY, color: '#fff', borderColor: 'var(--clr-border)' }}
           >
             {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <ArrowRight size={20} />}
           </button>
@@ -62,14 +67,15 @@ const SolvedOverlay: React.FC<Props> = ({
     <div className="flex gap-3">
       <button
         onClick={onPlayAgain}
-        className={`text-white font-black py-3 px-6 rounded-xl flex items-center gap-2 pointer-events-auto ${neoBtn}`}
-        style={{ background: CLR_RED }}
+        className={`font-black py-3 px-6 rounded-xl flex items-center gap-2 pointer-events-auto ${neoBtn}`}
+        style={{ background: CLR_PRIMARY, color: '#fff' }}
       >
         <RotateCcw size={16} /> Play Again
       </button>
       <button
         onClick={onMenu}
-        className={`bg-white text-black font-bold py-3 px-6 rounded-xl flex items-center gap-2 pointer-events-auto ${neoBtn}`}
+        className={`font-bold py-3 px-6 rounded-xl flex items-center gap-2 pointer-events-auto ${neoBtn}`}
+        style={{ background: CLR_SURFACE, color: CLR_TEXT }}
       >
         Change Mode
       </button>

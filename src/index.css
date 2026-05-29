@@ -4,10 +4,86 @@
 @tailwind components;
 @tailwind utilities;
 
-* { box-sizing: border-box; }
-body { margin: 0; background: #09090b; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
+/* ── THEME TOKENS ─────────────────────────────────────────── */
+:root {
+  /* Light mode */
+  --clr-primary:      #7830cf;  /* indigo-bloom-500  */
+  --clr-secondary:    #387bc7;  /* pale-sky-500      */
+  --clr-accent:       #7141be;  /* wisteria-500      */
+  --clr-bg:           #f1eafa;  /* indigo-bloom-50   */
+  --clr-surface:      #ffffff;
+  --clr-text:         #11071d;  /* indigo-bloom-950  */
+  --clr-text-muted:   #481d7c;  /* indigo-bloom-700  */
+  --clr-border:       #11071d;
+  --clr-shadow:       #11071d;
 
-.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+  /* Difficulty card tints (light) */
+  --clr-easy-tint:    #e4d6f5;  /* indigo-bloom-100  */
+  --clr-medium-tint:  #d7e5f4;  /* pale-sky-100      */
+  --clr-hard-tint:    #e3d9f2;  /* lavender-purple-100 */
+}
+
+[data-theme="dark"] {
+  --clr-primary:      #7830cf;
+  --clr-secondary:    #6095d2;  /* pale-sky-400 — brighter on dark */
+  --clr-accent:       #aa8dd8;  /* wisteria-300 — pops on dark bg  */
+  --clr-bg:           #11071d;  /* indigo-bloom-950 */
+  --clr-surface:      #180a29;  /* indigo-bloom-900 */
+  --clr-text:         #f1eafa;  /* indigo-bloom-50  */
+  --clr-text-muted:   #c9acec;  /* indigo-bloom-200 */
+  --clr-border:       #f1eafa;  /* indigo-bloom-50 — near-white, visible on all dark surfaces */
+  --clr-shadow:       #f1eafa;
+
+  /* Difficulty card tints (dark) */
+  --clr-easy-tint:    #301353;  /* indigo-bloom-800  */
+  --clr-medium-tint:  #163150;  /* pale-sky-800      */
+  --clr-hard-tint:    #2d1a4c;  /* lavender-purple-800 */
+}
+
+/* ── NEOBRUTALISM CLASSES ─────────────────────────────────── */
+.neo {
+  border: 3px solid var(--clr-border);
+  box-shadow: 4px 4px 0px 0px var(--clr-shadow);
+}
+
+.neo-btn {
+  border: 3px solid var(--clr-border);
+  box-shadow: 4px 4px 0px 0px var(--clr-shadow);
+  transition: transform 75ms ease, box-shadow 75ms ease;
+  cursor: pointer;
+}
+
+.neo-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px 0px var(--clr-shadow);
+}
+
+.neo-btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+/* Interactive without border/shadow (for cards with custom shadow colors) */
+.neo-interactive {
+  transition: transform 75ms ease;
+  cursor: pointer;
+}
+
+.neo-interactive:hover  { transform: translate(2px, 2px); }
+.neo-interactive:active { transform: translate(4px, 4px); }
+
+/* ── BASE ─────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--clr-bg);
+  color: var(--clr-text);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+/* ── SCROLLBAR ────────────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar       { width: 5px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: var(--clr-border); opacity: 0.2; border-radius: 3px; }

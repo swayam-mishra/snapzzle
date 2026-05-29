@@ -1,4 +1,4 @@
-import { CLR_YELLOW } from '../constants';
+import { CANVAS_ACCENT } from '../constants';
 import type { Tile, DragInfo } from '../types';
 
 export function renderBoard(
@@ -26,7 +26,7 @@ export function renderBoard(
       ctx.shadowColor = 'rgba(0,0,0,0.7)';
       ctx.shadowBlur = 24;
       ctx.shadowOffsetY = 14;
-      ctx.strokeStyle = CLR_YELLOW;
+      ctx.strokeStyle = CANVAS_ACCENT;
       ctx.lineWidth = 2.5;
     } else {
       ctx.strokeStyle = 'rgba(255,255,255,0.18)';
@@ -49,9 +49,9 @@ export function renderBoard(
       ctx.strokeRect(dx + 0.5, dy + 0.5, tw - 1, th - 1);
     } else if (drag && hover === idx) {
       drawTile(tile, dx, dy, tw, th);
-      ctx.fillStyle = `${CLR_YELLOW}28`;
+      ctx.fillStyle = `${CANVAS_ACCENT}28`;
       ctx.fillRect(dx, dy, tw, th);
-      ctx.strokeStyle = CLR_YELLOW;
+      ctx.strokeStyle = CANVAS_ACCENT;
       ctx.lineWidth = 2;
       ctx.strokeRect(dx + 1, dy + 1, tw - 2, th - 2);
     } else {

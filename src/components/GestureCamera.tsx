@@ -2,7 +2,8 @@ import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { HandLandmarker, DrawingUtils } from '@mediapipe/tasks-vision';
 import { ListOrdered, Hand, RotateCcw, Loader2 } from 'lucide-react';
 import {
-  CLR_YELLOW, CLR_RED, CLR_BLUE, BG_DEEP, BG_SURFACE,
+  CLR_PRIMARY, CLR_ACCENT, CLR_BG, CLR_SURFACE, CLR_TEXT, CLR_TEXT_MUTED,
+  CANVAS_ACCENT, CANVAS_CURSOR, CANVAS_BOARD,
   GRID, PINCH_THRESHOLD, FRAME_THRESHOLD, RESET_DWELL_MS, DROP_FRAMES,
   neo, neoBtn,
 } from '../constants';
@@ -35,7 +36,6 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Hooks
   const { videoRef, cameraReady, error: cameraError } = useCamera();
   const { hlRef, modelLoaded, error: modelError } = useHandLandmarker();
   const { timeElapsed, setTimeElapsed } = useGameTimer(gameState);
@@ -43,12 +43,10 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
 
   const error = cameraError ?? modelError;
 
-  // Canvas + render refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const duRef = useRef<DrawingUtils | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  // Game state refs (mutated in render loop — not React state)
   const tilesRef = useRef<Tile[]>([]);
   const imgRef = useRef<HTMLCanvasElement | null>(null);
   const boardRef = useRef<BoardCoords | null>(null);
@@ -89,7 +87,7 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
     finally { setIsSubmitting(false); }
   }, [playerName, isSubmitting, personalBest, timeElapsed, difficulty]);
 
-  // --- RENDER LOOP ---
+  // ── RENDER LOOP ──────────────────────────────────────────────
   const renderLoop = useCallback(() => {
     const video = videoRef.current, canvas = canvasRef.current;
     if (!video || !canvas || !cameraReady || video.readyState < 2) {
@@ -114,7 +112,7 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
       ctx.drawImage(video, 0, 0, W, H); ctx.restore();
     };
 
-    // ── SCANNING / LEADERBOARD ───────────────────────────────
+    // ── SCANNING / LEADERBOARD ─────────────────────────────────
     if (gameState === 'SCANNING' || gameState === 'LEADERBOARD') {
       drawBg();
       if (gameState === 'SCANNING' && results?.landmarks?.length === 2) {
@@ -163,13 +161,13 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
           ctx.fillStyle = 'rgba(0,0,0,0.45)';
           ctx.fillRect(0, 0, W, fy); ctx.fillRect(0, fy + fh, W, H - fy - fh);
           ctx.fillRect(0, fy, fx, fh); ctx.fillRect(fx + fw, fy, W - fx - fw, fh);
-          drawBrackets(ctx, fx, fy, fw, fh, CLR_YELLOW, 28, 4);
+          drawBrackets(ctx, fx, fy, fw, fh, CANVAS_ACCENT, 28, 4);
           ctx.save();
           ctx.font = 'bold 11px monospace';
           const labelW = ctx.measureText('PINCH TO CAPTURE').width + 16;
-          ctx.fillStyle = CLR_YELLOW;
+          ctx.fillStyle = CANVAS_ACCENT;
           ctx.fillRect(fx, fy - 24, labelW, 20);
-          ctx.fillStyle = '#000';
+          ctx.fillStyle = '#11071d';
           ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
           ctx.fillText('PINCH TO CAPTURE', fx + 8, fy - 14);
           ctx.restore();
@@ -177,7 +175,7 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
       }
     }
 
-    // ── PLAYING / SOLVED ─────────────────────────────────────
+    // ── PLAYING / SOLVED ───────────────────────────────────────
     else if ((gameState === 'PLAYING' || gameState === 'SOLVED') && imgRef.current && boardRef.current) {
       drawBg();
       const c = boardRef.current;
@@ -235,7 +233,6 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
         }
       }
 
-      // Render puzzle board
       ctx.save(); ctx.translate(bx, by);
       renderBoard(ctx, imgRef.current, tilesRef.current, cols, rows, bw, bh,
         dragRef.current.on && dragRef.current.idx !== null
@@ -243,9 +240,9 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
         hover,
       );
       const solved = gameState === 'SOLVED';
-      ctx.shadowColor = solved ? CLR_RED : 'transparent';
+      ctx.shadowColor = solved ? CANVAS_CURSOR : 'transparent';
       ctx.shadowBlur = solved ? 20 : 0;
-      ctx.strokeStyle = solved ? CLR_RED : CLR_BLUE;
+      ctx.strokeStyle = solved ? CANVAS_CURSOR : CANVAS_BOARD;
       ctx.lineWidth = solved ? 4 : 3;
       ctx.strokeRect(1, 1, bw - 2, bh - 2);
       ctx.restore();
@@ -255,10 +252,10 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
         ctx.save();
         ctx.beginPath(); ctx.arc(cx, cy, 9, 0, Math.PI * 2);
         if (dragRef.current.on) {
-          ctx.fillStyle = CLR_RED; ctx.fill();
+          ctx.fillStyle = CANVAS_CURSOR; ctx.fill();
         } else {
-          ctx.strokeStyle = CLR_RED; ctx.lineWidth = 2.5; ctx.stroke();
-          ctx.strokeStyle = `${CLR_RED}70`; ctx.lineWidth = 1;
+          ctx.strokeStyle = CANVAS_CURSOR; ctx.lineWidth = 2.5; ctx.stroke();
+          ctx.strokeStyle = `${CANVAS_CURSOR}70`; ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(cx - 15, cy); ctx.lineTo(cx - 11, cy);
           ctx.moveTo(cx + 11, cy); ctx.lineTo(cx + 15, cy);
@@ -286,10 +283,10 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
           ctx.save();
           ctx.beginPath(); ctx.arc(fcx, fcy, 44, 0, Math.PI * 2);
           ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fill();
-          ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+          ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.stroke();
           ctx.beginPath();
           ctx.arc(fcx, fcy, 44, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
-          ctx.strokeStyle = CLR_YELLOW; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.stroke();
+          ctx.strokeStyle = CANVAS_ACCENT; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.stroke();
           ctx.fillStyle = 'white'; ctx.font = 'bold 13px monospace';
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
           ctx.fillText('RESET', fcx, fcy - 6);
@@ -301,12 +298,12 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
       }
     }
 
-    // ── HAND SKELETON ────────────────────────────────────────
+    // ── HAND SKELETON ──────────────────────────────────────────
     if (results?.landmarks && duRef.current && gameState !== 'LEADERBOARD') {
       for (const lm of results.landmarks) {
         ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1);
-        duRef.current.drawConnectors(lm, HandLandmarker.HAND_CONNECTIONS, { color: 'rgba(255,255,255,0.45)', lineWidth: 2 });
-        duRef.current.drawLandmarks(lm, { color: 'rgba(255,255,255,0.7)', radius: 2.5, lineWidth: 1 });
+        duRef.current.drawConnectors(lm, HandLandmarker.HAND_CONNECTIONS, { color: 'rgba(255,255,255,0.4)', lineWidth: 2 });
+        duRef.current.drawLandmarks(lm, { color: 'rgba(255,255,255,0.65)', radius: 2.5, lineWidth: 1 });
         ctx.restore();
       }
     }
@@ -320,31 +317,34 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
   }, [renderLoop]);
 
   return (
-    <div className="relative w-full h-full overflow-hidden rounded-xl" style={{ background: BG_SURFACE }}>
+    <div className="relative w-full h-full overflow-hidden rounded-xl" style={{ background: CLR_SURFACE }}>
       <video ref={videoRef} className="hidden" playsInline muted autoPlay />
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover" />
 
       {gameState === 'PLAYING' && <TimerDisplay time={timeElapsed} />}
 
+      {/* Scanning controls */}
       {gameState === 'SCANNING' && (
         <div className="absolute top-5 left-5 z-30 flex gap-2">
           <button
             onClick={onMenu}
-            className={`bg-white text-black font-black text-xs uppercase tracking-wider px-3 py-2 rounded-xl flex items-center gap-1.5 pointer-events-auto ${neoBtn}`}
+            className={`font-black text-xs uppercase tracking-wider px-3 py-2 rounded-xl flex items-center gap-1.5 pointer-events-auto ${neoBtn}`}
+            style={{ background: CLR_SURFACE, color: CLR_TEXT }}
           >
             ← Difficulty
           </button>
           {LEADERBOARD_ENABLED && (
             <button
               onClick={() => setGameState('LEADERBOARD')}
-              className={`text-black font-black text-xs uppercase tracking-wider px-3 py-2 rounded-xl flex items-center gap-1.5 pointer-events-auto ${neoBtn}`}
-              style={{ background: CLR_YELLOW }}
+              className={`font-black text-xs uppercase tracking-wider px-3 py-2 rounded-xl flex items-center gap-1.5 pointer-events-auto ${neoBtn}`}
+              style={{ background: CLR_ACCENT, color: CLR_BG }}
             >
               <ListOrdered className="w-3.5 h-3.5" /> Scores
             </button>
           )}
         </div>
       )}
+
 
       <InstructionsPanel state={gameState} />
 
@@ -368,39 +368,40 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
           <button
             onClick={resetGame}
             title="Reset"
-            className={`absolute bottom-5 left-5 z-20 bg-white text-black p-3 rounded-xl pointer-events-auto ${neoBtn}`}
+            className={`absolute bottom-5 left-5 z-20 p-3 rounded-xl pointer-events-auto ${neoBtn}`}
+            style={{ background: CLR_SURFACE, color: CLR_TEXT }}
           >
             <RotateCcw size={18} />
           </button>
-          <div className="absolute bottom-5 right-5 z-10 flex items-center gap-1.5 text-white/40 text-[10px] font-bold uppercase tracking-wider pointer-events-none">
+          <div className="absolute bottom-5 right-5 z-10 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider pointer-events-none opacity-40" style={{ color: CLR_TEXT }}>
             <Hand className="w-3.5 h-3.5" /><span>Pinch to grab</span>
           </div>
         </>
       )}
 
-      {/* Loading / error states */}
+      {/* Loading / error */}
       {!cameraReady && !error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 gap-4" style={{ background: BG_DEEP }}>
-          <Loader2 className="w-10 h-10 animate-spin" style={{ color: CLR_YELLOW }} />
-          <p className="text-xs tracking-widest uppercase font-black text-white/50">Starting Camera</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 gap-4" style={{ background: CLR_BG }}>
+          <Loader2 className="w-10 h-10 animate-spin" style={{ color: CLR_ACCENT }} />
+          <p className="text-xs tracking-widest uppercase font-black opacity-50" style={{ color: CLR_TEXT }}>Starting Camera</p>
         </div>
       )}
       {cameraReady && !modelLoaded && !error && (
         <div
-          className={`absolute top-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 text-black px-3 py-1.5 rounded-xl ${neo} font-black text-[10px] uppercase tracking-widest`}
-          style={{ background: CLR_YELLOW }}
+          className={`absolute top-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-xl ${neo} font-black text-[10px] uppercase tracking-widest`}
+          style={{ background: CLR_ACCENT, color: CLR_BG }}
         >
           <Loader2 className="w-3 h-3 animate-spin" />
           Loading AI Model
         </div>
       )}
       {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-30 p-8 text-center gap-4" style={{ background: BG_DEEP }}>
-          <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${neo}`} style={{ background: CLR_RED }}>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-30 p-8 text-center gap-4" style={{ background: CLR_BG }}>
+          <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${neo}`} style={{ background: CLR_PRIMARY }}>
             <span className="text-white text-2xl font-black">!</span>
           </div>
-          <p className="font-black text-white text-lg">Something went wrong</p>
-          <p className="text-sm font-medium" style={{ color: '#527cad' }}>{error}</p>
+          <p className="font-black text-lg" style={{ color: CLR_TEXT }}>Something went wrong</p>
+          <p className="text-sm font-medium" style={{ color: CLR_TEXT_MUTED }}>{error}</p>
         </div>
       )}
     </div>
