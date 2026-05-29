@@ -7,7 +7,8 @@ import {
   GRID, PINCH_THRESHOLD, FRAME_THRESHOLD, RESET_DWELL_MS, DROP_FRAMES,
   neo, neoBtn,
 } from '../constants';
-import { supabase, LEADERBOARD_ENABLED } from '../lib/supabase';
+import { db, LEADERBOARD_ENABLED } from '../lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 import { renderBoard, drawBrackets } from '../lib/canvas';
 import { captureFrame, generateTiles, isSolved } from '../utils/puzzle';
 import { sounds } from '../sounds';
@@ -69,7 +70,7 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
   }, [setTimeElapsed]);
 
   const submitScore = useCallback(async () => {
-    if (!playerName.trim() || isSubmitting || !supabase) return;
+    if (!playerName.trim() || isSubmitting || !db) return;
     setIsSubmitting(true);
     const name = playerName.trim().toUpperCase();
     localStorage.setItem('lp-name', name);
@@ -78,10 +79,9 @@ const GestureCamera: React.FC<Props> = ({ cols, rows, difficulty, onMenu }) => {
       localStorage.setItem('lp-best', String(timeElapsed));
     }
     try {
-      const { error } = await supabase
-        .from('leaderboard')
-        .insert({ name, time: timeElapsed, difficulty, date: Date.now() });
-      if (error) throw error;
+      await addDoc(collection(db, 'leaderboard'), {
+        name, time: timeElapsed, difficulty, date: Date.now(),
+      });
       setGameState('LEADERBOARD');
     } catch { alert('Could not save score.'); }
     finally { setIsSubmitting(false); }

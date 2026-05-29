@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { supabase, LEADERBOARD_ENABLED } from '../lib/supabase';
+import {
+  collection, query, orderBy, limit, onSnapshot, type QuerySnapshot,
+} from 'firebase/firestore';
+import { db, LEADERBOARD_ENABLED } from '../lib/firebase';
 import type { LeaderboardEntry } from '../types';
 
 export function useLeaderboard() {
@@ -9,29 +12,27 @@ export function useLeaderboard() {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    if (!LEADERBOARD_ENABLED || !supabase) return;
+    if (!LEADERBOARD_ENABLED || !db) return;
     setIsConnected(false);
 
-    const fetchScores = async () => {
-      const { data, error } = await supabase!
-        .from('leaderboard')
-        .select('*')
-        .order('time', { ascending: true })
-        .limit(50);
-      if (error) { setIsConnected(false); return; }
-      setIsConnected(true);
-      setLeaderboard(data as LeaderboardEntry[]);
-      localStorage.setItem('lp-lb', JSON.stringify(data));
-    };
+    const q = query(
+      collection(db, 'leaderboard'),
+      orderBy('time', 'asc'),
+      limit(50),
+    );
 
-    fetchScores();
+    const unsub = onSnapshot(
+      q,
+      (snap: QuerySnapshot) => {
+        setIsConnected(true);
+        const scores = snap.docs.map((d) => ({ id: d.id, ...d.data() } as LeaderboardEntry));
+        setLeaderboard(scores);
+        localStorage.setItem('lp-lb', JSON.stringify(scores));
+      },
+      () => setIsConnected(false),
+    );
 
-    const channel = supabase
-      .channel('leaderboard-changes')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leaderboard' }, fetchScores)
-      .subscribe((status) => setIsConnected(status === 'SUBSCRIBED'));
-
-    return () => { supabase!.removeChannel(channel); };
+    return unsub;
   }, []);
 
   return { leaderboard, isConnected };

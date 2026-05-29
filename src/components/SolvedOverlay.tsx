@@ -1,7 +1,7 @@
 import React from 'react';
 import { Trophy, Timer, User, ArrowRight, RotateCcw, Loader2 } from 'lucide-react';
 import { CLR_PRIMARY, CLR_ACCENT, CLR_BG, CLR_SURFACE, CLR_TEXT, CLR_TEXT_MUTED, GRID, neo, neoBtn } from '../constants';
-import { LEADERBOARD_ENABLED } from '../lib/supabase';
+import { LEADERBOARD_ENABLED } from '../lib/firebase';
 import { fmt } from '../utils/puzzle';
 import type { Difficulty } from '../types';
 
