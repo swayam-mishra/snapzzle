@@ -19,6 +19,12 @@ export function generateTiles(cols: number, rows: number): Tile[] {
     const j = Math.floor(Math.random() * (i + 1));
     [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
   }
+  // Guard: if shuffle landed on solved state, swap two adjacent tiles
+  while (isSolved(tiles)) {
+    const i = 0;
+    const j = 1;
+    [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+  }
   return tiles;
 }
 
