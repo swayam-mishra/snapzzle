@@ -37,30 +37,28 @@ const SolvedOverlay: React.FC<Props> = ({
         <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: CLR_TEXT_MUTED }}>
           Submit to leaderboard
         </p>
-        <div className={`flex items-center w-full rounded-xl overflow-hidden ${neo}`} style={{ background: CLR_SURFACE }}>
-          <div className="relative flex-1">
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-30" style={{ color: CLR_TEXT }} />
-            <input
-              type="text"
-              placeholder="YOUR NAME"
-              maxLength={10}
-              value={playerName}
-              onChange={(e) => onNameChange(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
-              autoFocus
-              className="w-full bg-transparent text-center text-lg outline-none py-3 pl-8 pr-3 font-black uppercase placeholder:opacity-20 pointer-events-auto"
-              style={{ color: CLR_TEXT }}
-            />
-          </div>
-          <button
-            onClick={onSubmit}
-            disabled={!playerName.trim() || isSubmitting}
-            className="p-3 transition-colors pointer-events-auto border-l-[3px] disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: CLR_PRIMARY, color: '#fff', borderColor: 'var(--clr-border)' }}
-          >
-            {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <ArrowRight size={20} />}
-          </button>
+        <div className={`relative w-full rounded-xl ${neo}`} style={{ background: CLR_SURFACE }}>
+          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 opacity-30" style={{ color: CLR_TEXT }} />
+          <input
+            type="text"
+            placeholder="YOUR NAME"
+            maxLength={10}
+            value={playerName}
+            onChange={(e) => onNameChange(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
+            autoFocus
+            className="w-full bg-transparent text-center text-lg outline-none py-3 pl-8 pr-3 font-black uppercase placeholder:opacity-20 pointer-events-auto"
+            style={{ color: CLR_TEXT }}
+          />
         </div>
+        <button
+          onClick={onSubmit}
+          disabled={!playerName.trim() || isSubmitting}
+          className={`w-full font-black py-3 rounded-xl flex items-center justify-center gap-2 pointer-events-auto disabled:opacity-40 disabled:cursor-not-allowed ${neoBtn}`}
+          style={{ background: CLR_PRIMARY, color: '#fff' }}
+        >
+          {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <><ArrowRight size={18} /> Submit</>}
+        </button>
       </div>
     )}
 

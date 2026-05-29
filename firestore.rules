@@ -1,0 +1,68 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: leaderboard
+// Document ID: auto-generated
+// Fields:
+//   - name:       string (required, 1-10 chars) - player display name (uppercase)
+//   - time:       number (required, > 0)        - solve time in milliseconds
+//   - difficulty: string (required)             - one of "easy", "medium", "hard"
+//   - date:       number (required, > 0)        - Unix timestamp in ms (Date.now())
+//
+// Access patterns:
+//   - Anyone can READ (public leaderboard, ordered by time asc, limit 50)
+//   - Anyone can CREATE (anonymous score submission, no auth required)
+//   - No updates or deletes allowed
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helper Functions ──────────────────────────────────────
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // Validate a leaderboard entry
+    function isValidEntry() {
+      let d = request.resource.data;
+      return hasRequiredFields(['name', 'time', 'difficulty', 'date'])
+          && hasOnlyAllowedFields(['name', 'time', 'difficulty', 'date'])
+          && d.name is string
+          && d.name.size() >= 1
+          && d.name.size() <= 10
+          && d.time is number
+          && d.time > 0
+          && d.time < 86400000        // max 24 hours in ms — sanity cap
+          && d.difficulty is string
+          && d.difficulty in ['easy', 'medium', 'hard']
+          && d.date is number
+          && d.date > 0;
+    }
+
+    // ── Leaderboard Collection ────────────────────────────────
+    match /leaderboard/{entryId} {
+      // Anyone can read (public leaderboard)
+      allow read: if true;
+
+      // Anyone can create a valid entry (anonymous play, no auth)
+      allow create: if isValidEntry();
+
+      // No updates or deletes
+      allow update, delete: if false;
+    }
+
+    // Deny everything else by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
