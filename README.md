@@ -101,4 +101,4 @@ Push to GitHub, then import the repo on [Vercel](https://vercel.com). It auto-de
 
 ## License
 
-MIT
+[CC BY-NC 4.0](LICENSE) — free to use and learn from, no commercial use.
