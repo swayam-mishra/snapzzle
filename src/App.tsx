@@ -4,33 +4,24 @@ import {
   Loader2, RotateCcw, Trophy, Hand, Timer, ListOrdered,
   ArrowRight, User, Star, Wifi, WifiOff, Zap, Target, Flame,
 } from 'lucide-react';
-import { initializeApp } from 'firebase/app';
-import {
-  getFirestore, collection, addDoc, onSnapshot,
-  type Firestore,
-} from 'firebase/firestore';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { sounds } from './sounds';
 
-// --- FIREBASE (optional) ---
-const FIREBASE_ENABLED = !!(
-  import.meta.env.VITE_FIREBASE_API_KEY &&
-  import.meta.env.VITE_FIREBASE_PROJECT_ID
+// --- SUPABASE (optional — set VITE_SUPABASE_* env vars to enable leaderboard) ---
+const LEADERBOARD_ENABLED = !!(
+  import.meta.env.VITE_SUPABASE_URL &&
+  import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-let db: Firestore | null = null;
-if (FIREBASE_ENABLED) {
+let supabase: SupabaseClient | null = null;
+if (LEADERBOARD_ENABLED) {
   try {
-    const app = initializeApp({
-      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-      storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-      appId: import.meta.env.VITE_FIREBASE_APP_ID,
-    });
-    db = getFirestore(app);
+    supabase = createClient(
+      import.meta.env.VITE_SUPABASE_URL,
+      import.meta.env.VITE_SUPABASE_ANON_KEY,
+    );
   } catch (e) {
-    console.warn('Firebase init failed:', e);
+    console.warn('Supabase init failed:', e);
   }
 }
 
@@ -197,7 +188,7 @@ const SolvedOverlay: React.FC<{
     </div>
     <p className="text-zinc-500 text-xs uppercase tracking-widest mb-8">{GRID[difficulty].desc}</p>
 
-    {FIREBASE_ENABLED && (
+    {LEADERBOARD_ENABLED && (
       <div className="flex flex-col items-center gap-3 w-full max-w-xs px-6 mb-6">
         <p className="text-zinc-500 text-[10px] uppercase tracking-widest">Submit to leaderboard</p>
         <div className="flex items-center gap-3 w-full">
@@ -335,21 +326,30 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
 
   // Leaderboard sync
   useEffect(() => {
-    if (!FIREBASE_ENABLED || !db) return;
+    if (!LEADERBOARD_ENABLED || !supabase) return;
     setIsConnected(false);
-    const unsub = onSnapshot(
-      collection(db, 'leaderboard'),
-      (snap) => {
-        setIsConnected(true);
-        const scores = snap.docs.map((d) => ({ id: d.id, ...d.data() } as LeaderboardEntry));
-        scores.sort((a, b) => a.time - b.time);
-        const top = scores.slice(0, 50);
-        setLeaderboard(top);
-        localStorage.setItem('lp-lb', JSON.stringify(top));
-      },
-      () => setIsConnected(false),
-    );
-    return unsub;
+
+    const fetchScores = async () => {
+      const { data, error } = await supabase!
+        .from('leaderboard')
+        .select('*')
+        .order('time', { ascending: true })
+        .limit(50);
+      if (error) { setIsConnected(false); return; }
+      setIsConnected(true);
+      setLeaderboard(data as LeaderboardEntry[]);
+      localStorage.setItem('lp-lb', JSON.stringify(data));
+    };
+
+    fetchScores();
+
+    // Real-time: re-fetch whenever a new score is inserted
+    const channel = supabase
+      .channel('leaderboard-changes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leaderboard' }, fetchScores)
+      .subscribe((status) => setIsConnected(status === 'SUBSCRIBED'));
+
+    return () => { supabase!.removeChannel(channel); };
   }, []);
 
   // MediaPipe
@@ -403,7 +403,7 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
   }, []);
 
   const submitScore = useCallback(async () => {
-    if (!playerName.trim() || isSubmitting || !db) return;
+    if (!playerName.trim() || isSubmitting || !supabase) return;
     setIsSubmitting(true);
     const name = playerName.trim().toUpperCase();
     localStorage.setItem('lp-name', name);
@@ -412,7 +412,10 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
       localStorage.setItem('lp-best', String(timeElapsed));
     }
     try {
-      await addDoc(collection(db, 'leaderboard'), { name, time: timeElapsed, difficulty, date: Date.now() });
+      const { error } = await supabase
+        .from('leaderboard')
+        .insert({ name, time: timeElapsed, difficulty, date: Date.now() });
+      if (error) throw error;
       setGameState('LEADERBOARD');
     } catch { alert('Could not save score.'); }
     finally { setIsSubmitting(false); }
@@ -644,7 +647,7 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
           <button onClick={onMenu} className="flex items-center gap-1.5 bg-zinc-900/80 text-white px-3 py-2 rounded-full border border-white/10 hover:bg-zinc-800 transition-colors cursor-pointer text-xs font-bold uppercase tracking-wider pointer-events-auto">
             ← Difficulty
           </button>
-          {FIREBASE_ENABLED && (
+          {LEADERBOARD_ENABLED && (
             <button onClick={() => setGameState('LEADERBOARD')} className="flex items-center gap-2 bg-zinc-900/80 text-white px-3 py-2 rounded-full border border-white/10 hover:bg-zinc-800 transition-colors cursor-pointer pointer-events-auto">
               <ListOrdered className="w-4 h-4 text-[#ccff00]" />
               <span className="text-xs font-bold uppercase tracking-wider">Scores</span>
@@ -663,7 +666,7 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
         />
       )}
 
-      {gameState === 'LEADERBOARD' && FIREBASE_ENABLED && (
+      {gameState === 'LEADERBOARD' && LEADERBOARD_ENABLED && (
         <LeaderboardScreen
           leaderboard={leaderboard} personalBest={personalBest}
           playerName={playerName} isConnected={isConnected} onBack={resetGame}

@@ -1,110 +1,103 @@
 # Snapzzle
 
-An AR puzzle game controlled entirely by hand gestures. Frame anything with your webcam, snap it into a shuffled grid, then pinch and drag to solve it — no mouse or keyboard needed.
+Point your webcam at anything. Frame it with your hands. Snap it into a puzzle and solve it — no mouse, no keyboard, just your fingers.
 
-## How to play
+![Snapzzle](https://img.shields.io/badge/built_with-MediaPipe-ccff00?style=flat-square&labelColor=111) ![React](https://img.shields.io/badge/React-18-ccff00?style=flat-square&labelColor=111) ![Vite](https://img.shields.io/badge/Vite-6-ccff00?style=flat-square&labelColor=111)
 
-### Phase 1 — Capture
-1. Hold both hands up with thumbs and index fingers spread apart to form a frame
-2. Line up the frame around whatever you want to puzzle-ify
-3. **Pinch both hands simultaneously** to snap the photo and start the puzzle
+---
 
-### Phase 2 — Solve
-| Gesture | Action |
+## How it works
+
+### Step 1 — Frame it
+Hold both hands up and spread your thumbs and index fingers apart to form a rectangle around whatever you want to puzzle-ify. Your coffee mug, your face, your desk — anything works.
+
+### Step 2 — Snap it
+Pinch both hands at the same time. The game captures whatever's inside your frame and shuffles it into a grid.
+
+### Step 3 — Solve it
+Use a pinch gesture to pick up tiles and drop them to swap positions. Restore the original image to win.
+
+| Gesture | What it does |
 |---|---|
 | Pinch (index + thumb) | Pick up a tile |
-| Drag while pinching | Move it |
-| Release pinch | Drop and swap with the tile underneath |
+| Drag while pinched | Move it |
+| Open hand | Drop and swap |
 | Hold fist for 3s | Reset the puzzle |
 
-There are three difficulty modes — Easy (3×3), Medium (4×4), Hard (5×5) — selectable from the main menu.
+### Difficulty
+Pick how hard you want it before the game starts:
+- **Easy** — 3×3 (9 tiles)
+- **Medium** — 4×4 (16 tiles)
+- **Hard** — 5×5 (25 tiles)
 
-> Works best in **Chrome or Edge on desktop**. Requires webcam access.
+---
 
-## Tech stack
+## Play it
 
-- [React 18](https://react.dev) + TypeScript
-- [Vite](https://vite.dev)
-- [MediaPipe Tasks Vision](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker) — real-time hand landmark detection
-- [Tailwind CSS](https://tailwindcss.com)
-- [Lucide React](https://lucide.dev) — icons
-- [Firebase Firestore](https://firebase.google.com/docs/firestore) — optional online leaderboard
-- Web Audio API — synthesized sound effects (no audio files)
+**Live:** [your-deployment-url.vercel.app](#) ← update this after deploying
 
-## Run locally
-
+**Run locally:**
 ```bash
-git clone <your-repo-url>
-cd VisualPuzzle
 npm install
 npm run dev
 ```
+Then open [localhost:5173](http://localhost:5173).
 
-Open [http://localhost:5173](http://localhost:5173).
+> Works best in **Chrome or Edge on desktop**. You'll need to allow webcam access when prompted.
 
-## Deploy to Vercel
+---
 
-1. Push your repo to GitHub
-2. Go to [vercel.com](https://vercel.com) → **Add New Project** → import the repo
-3. Vercel auto-detects Vite — hit **Deploy**
+## Leaderboard
 
-That's it. The game works without any environment variables.
+Scores are stored online so you can compete with others. To enable it, you'll need a free [Supabase](https://supabase.com) account.
 
-## Online leaderboard (optional)
+Once you have one:
 
-The leaderboard requires a Firebase project. Without it the game runs fine — players just see their local personal best.
+1. Create a new project on Supabase
+2. Open the **SQL Editor** and run this to set up the scores table:
 
-### Setup
+```sql
+create table leaderboard (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  time integer not null,
+  difficulty text not null,
+  date bigint not null,
+  created_at timestamptz default now()
+);
 
-1. Go to [console.firebase.google.com](https://console.firebase.google.com) → create a project
-2. **Build → Firestore Database** → Create database (start in test mode)
-3. **Project Settings → Your apps → Add app (Web)** → copy the config
-4. Copy `.env.example` to `.env` and fill in your values:
-
-```
-VITE_FIREBASE_API_KEY=...
-VITE_FIREBASE_AUTH_DOMAIN=...
-VITE_FIREBASE_PROJECT_ID=...
-VITE_FIREBASE_STORAGE_BUCKET=...
-VITE_FIREBASE_MESSAGING_SENDER_ID=...
-VITE_FIREBASE_APP_ID=...
-```
-
-5. Add the same variables in **Vercel → Project Settings → Environment Variables**
-
-### Firestore rules
-
-In the Firebase console go to **Firestore → Rules** and set:
-
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /leaderboard/{entry} {
-      allow read: if true;
-      allow create: if request.resource.data.keys().hasAll(['name', 'time', 'difficulty', 'date'])
-        && request.resource.data.name is string
-        && request.resource.data.time is number;
-    }
-  }
-}
+alter table leaderboard enable row level security;
+create policy "public read"   on leaderboard for select using (true);
+create policy "public insert" on leaderboard for insert with check (true);
 ```
 
-## Project structure
+3. Go to **Settings → API** and copy your Project URL and anon key
+4. Create a `.env` file in the project root:
 
 ```
-VisualPuzzle/
-├── src/
-│   ├── App.tsx        # complete game — menu, camera, puzzle, leaderboard
-│   ├── sounds.ts      # Web Audio sound engine
-│   ├── main.tsx       # React entry point
-│   ├── index.css      # Tailwind + global styles
-│   └── vite-env.d.ts  # env variable types
-├── public/
-├── index.html
-├── .env.example       # Firebase config template
-└── vite.config.ts
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
+
+The leaderboard will appear automatically once these are set. Without them the game still works fully — players just won't see global scores.
+
+---
+
+## Deploy
+
+Push to GitHub, then import the repo on [Vercel](https://vercel.com). It auto-detects everything and deploys in under a minute. Add your Supabase env vars under **Project Settings → Environment Variables** if you want the leaderboard live too.
+
+---
+
+## Built with
+
+- [MediaPipe](https://ai.google.dev/edge/mediapipe) — hand tracking AI
+- [React](https://react.dev) + [Vite](https://vite.dev)
+- [Tailwind CSS](https://tailwindcss.com)
+- [Supabase](https://supabase.com) — leaderboard
+- Web Audio API — sound effects
+
+---
 
 ## License
 
