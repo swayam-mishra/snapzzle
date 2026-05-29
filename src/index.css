@@ -1,9 +1,11 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 * { box-sizing: border-box; }
-body { margin: 0; background: #09090b; overflow: hidden; }
+body { margin: 0; background: #09090b; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
 
 .custom-scrollbar::-webkit-scrollbar { width: 5px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }

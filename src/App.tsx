@@ -7,7 +7,7 @@ import {
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { sounds } from './sounds';
 
-// --- SUPABASE (optional — set VITE_SUPABASE_* env vars to enable leaderboard) ---
+// --- SUPABASE (optional) ---
 const LEADERBOARD_ENABLED = !!(
   import.meta.env.VITE_SUPABASE_URL &&
   import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -26,10 +26,15 @@ if (LEADERBOARD_ENABLED) {
 }
 
 // --- CONSTANTS ---
-const ACCENT = '#ccff00';
+const CLR_YELLOW = '#ffea00'; // sunbeam yellow — frame, highlights, hover
+const CLR_RED    = '#ff0033'; // strawberry red  — cursor, solve glow, CTA
+const CLR_BLUE   = '#004cff'; // crayola blue    — board border
+const BG_DEEP    = '#0b1118'; // alice blue 950  — backgrounds
+const BG_SURFACE = '#213245'; // alice blue 800  — surfaces
+
 const PINCH_THRESHOLD = 0.05;
 const FRAME_THRESHOLD = 0.1;
-const RESET_DWELL_MS = 3000;
+const RESET_DWELL_MS  = 3000;
 
 // --- DIFFICULTY ---
 type Difficulty = 'easy' | 'medium' | 'hard';
@@ -99,7 +104,7 @@ function renderBoard(
     ctx.save();
     if (lifted) {
       ctx.shadowColor = 'rgba(0,0,0,0.7)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 14;
-      ctx.strokeStyle = ACCENT; ctx.lineWidth = 2.5;
+      ctx.strokeStyle = CLR_YELLOW; ctx.lineWidth = 2.5;
     } else {
       ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1;
     }
@@ -117,8 +122,8 @@ function renderBoard(
       ctx.strokeRect(dx + 0.5, dy + 0.5, tw - 1, th - 1);
     } else if (drag && hover === idx) {
       drawTile(tile, dx, dy, tw, th);
-      ctx.fillStyle = `${ACCENT}28`; ctx.fillRect(dx, dy, tw, th);
-      ctx.strokeStyle = ACCENT; ctx.lineWidth = 2;
+      ctx.fillStyle = `${CLR_YELLOW}28`; ctx.fillRect(dx, dy, tw, th);
+      ctx.strokeStyle = CLR_YELLOW; ctx.lineWidth = 2;
       ctx.strokeRect(dx + 1, dy + 1, tw - 2, th - 2);
     } else {
       drawTile(tile, dx, dy, tw, th);
@@ -150,25 +155,43 @@ function drawBrackets(
   ctx.restore();
 }
 
+// --- NEOBRUTALISM HELPERS ---
+const neo = 'border-[3px] border-black shadow-[4px_4px_0px_0px_#000000]';
+const neoHover = 'hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000000]';
+const neoActive = 'active:translate-x-[4px] active:translate-y-[4px] active:shadow-none';
+const neoBtn = `${neo} ${neoHover} ${neoActive} transition-all duration-75 cursor-pointer`;
+
 // --- SUB-COMPONENTS ---
 
 const TimerDisplay: React.FC<{ time: number }> = ({ time }) => (
-  <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-zinc-900/80 text-white px-4 py-2 rounded-full border border-white/10 shadow-xl backdrop-blur">
-    <Timer className="w-4 h-4 text-[#ccff00]" />
-    <span className="font-mono text-lg font-bold tracking-wider">{fmt(time)}</span>
+  <div className={`absolute top-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-[${CLR_YELLOW}] text-black px-4 py-2 rounded-xl ${neo} font-mono font-black`}>
+    <Timer className="w-4 h-4" />
+    <span className="text-lg tracking-wider">{fmt(time)}</span>
   </div>
 );
 
 const InstructionsPanel: React.FC<{ state: GameState }> = ({ state }) => {
   const map: Record<GameState, React.ReactNode> = {
-    SCANNING: (<><p className="font-bold text-[#ccff00] mb-1.5">PHASE 1: CAPTURE</p><p>Form a frame with both hands</p><p>Pinch both to snap</p></>),
-    PLAYING:  (<><p className="font-bold text-[#ccff00] mb-1.5">PHASE 2: SOLVE</p><p>Pinch &amp; drag to swap tiles</p><p className="text-white/35 mt-1.5">Hold fist to reset</p></>),
-    SOLVED:      <p className="font-bold text-[#ccff00]">PUZZLE SOLVED!</p>,
-    LEADERBOARD: <p className="font-bold text-[#ccff00]">TOP PLAYERS</p>,
+    SCANNING: (
+      <>
+        <p className="font-black text-[#ff0033] mb-1.5 uppercase tracking-wide">Phase 1: Capture</p>
+        <p>Form a frame with both hands</p>
+        <p>Pinch both to snap</p>
+      </>
+    ),
+    PLAYING: (
+      <>
+        <p className="font-black text-[#ff0033] mb-1.5 uppercase tracking-wide">Phase 2: Solve</p>
+        <p>Pinch &amp; drag to swap tiles</p>
+        <p className="text-black/40 mt-1.5">Hold fist to reset</p>
+      </>
+    ),
+    SOLVED:      <p className="font-black text-[#ff0033] uppercase">Puzzle Solved!</p>,
+    LEADERBOARD: <p className="font-black text-[#ff0033] uppercase">Top Players</p>,
   };
   return (
     <div className="absolute top-4 right-4 z-20 pointer-events-none">
-      <div className="text-[10px] text-white/65 bg-black/55 px-3 py-2.5 rounded-lg backdrop-blur border border-white/10 text-right leading-[1.7]">
+      <div className={`text-[10px] text-black/70 bg-white px-3 py-2.5 rounded-xl ${neo} text-right leading-[1.8] font-medium`}>
         {map[state]}
       </div>
     </div>
@@ -179,33 +202,34 @@ const SolvedOverlay: React.FC<{
   time: number; difficulty: Difficulty; playerName: string; isSubmitting: boolean;
   onNameChange: (n: string) => void; onSubmit: () => void; onPlayAgain: () => void; onMenu: () => void;
 }> = ({ time, difficulty, playerName, isSubmitting, onNameChange, onSubmit, onPlayAgain, onMenu }) => (
-  <div className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/80 backdrop-blur-md">
-    <Trophy className="w-14 h-14 text-[#ccff00] mb-3" />
-    <h2 className="text-3xl font-bold text-white mb-1 tracking-widest">COMPLETE</h2>
-    <div className="flex items-center gap-2 mb-1">
-      <Timer className="w-4 h-4 text-[#ccff00]" />
-      <span className="text-2xl font-mono font-bold text-white">{fmt(time)}</span>
+  <div className="absolute inset-0 flex flex-col items-center justify-center z-30" style={{ background: `${BG_DEEP}f0` }}>
+    <Trophy className="w-16 h-16 text-[#ffea00] mb-4" strokeWidth={1.5} />
+    <h2 className="text-5xl font-black text-white uppercase tracking-tight mb-3">Complete!</h2>
+
+    <div className={`flex items-center gap-3 bg-[${CLR_YELLOW}] text-black px-6 py-3 rounded-xl ${neo} mb-2`}>
+      <Timer className="w-5 h-5" />
+      <span className="text-3xl font-black font-mono tracking-wider">{fmt(time)}</span>
     </div>
-    <p className="text-zinc-500 text-xs uppercase tracking-widest mb-8">{GRID[difficulty].desc}</p>
+    <p className="text-[#527cad] text-xs uppercase tracking-widest font-bold mb-8">{GRID[difficulty].desc}</p>
 
     {LEADERBOARD_ENABLED && (
       <div className="flex flex-col items-center gap-3 w-full max-w-xs px-6 mb-6">
-        <p className="text-zinc-500 text-[10px] uppercase tracking-widest">Submit to leaderboard</p>
-        <div className="flex items-center gap-3 w-full">
+        <p className="text-[#527cad] text-[10px] uppercase tracking-widest font-bold">Submit to leaderboard</p>
+        <div className={`flex items-center gap-0 w-full bg-white rounded-xl overflow-hidden ${neo}`}>
           <div className="relative flex-1">
-            <User className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black/30" />
             <input
               type="text" placeholder="YOUR NAME" maxLength={10} value={playerName}
               onChange={(e) => onNameChange(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
               autoFocus
-              className="w-full bg-transparent border-b-2 border-[#ccff00] text-center text-xl text-white outline-none py-2 pl-7 font-mono uppercase placeholder:text-zinc-700 focus:border-white transition-colors pointer-events-auto"
+              className="w-full bg-transparent text-black text-center text-lg outline-none py-3 pl-8 pr-3 font-black uppercase placeholder:text-black/20 pointer-events-auto"
             />
           </div>
           <button
             onClick={onSubmit}
             disabled={!playerName.trim() || isSubmitting}
-            className="bg-[#ccff00] hover:bg-[#b3e600] disabled:opacity-40 disabled:cursor-not-allowed text-black p-2.5 rounded-full transition-all hover:scale-105 active:scale-95 pointer-events-auto"
+            className="bg-[#ff0033] hover:bg-[#cc0029] disabled:opacity-40 disabled:cursor-not-allowed text-white p-3 transition-colors pointer-events-auto border-l-[3px] border-black"
           >
             {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <ArrowRight size={20} />}
           </button>
@@ -214,11 +238,17 @@ const SolvedOverlay: React.FC<{
     )}
 
     <div className="flex gap-3">
-      <button onClick={onPlayAgain} className="bg-[#ccff00] hover:bg-[#b3e600] text-black font-bold py-2.5 px-6 rounded-full flex items-center gap-2 transition-all hover:scale-105 active:scale-95 pointer-events-auto shadow-lg shadow-[#ccff00]/20">
-        <RotateCcw size={15} /> Play Again
+      <button
+        onClick={onPlayAgain}
+        className={`bg-[#ff0033] text-white font-black py-3 px-6 rounded-xl flex items-center gap-2 ${neoBtn}`}
+      >
+        <RotateCcw size={16} /> Play Again
       </button>
-      <button onClick={onMenu} className="border border-white/20 hover:border-white/40 text-white/60 hover:text-white py-2.5 px-6 rounded-full text-sm transition-all pointer-events-auto">
-        Change Difficulty
+      <button
+        onClick={onMenu}
+        className={`bg-white text-black font-bold py-3 px-6 rounded-xl flex items-center gap-2 ${neoBtn}`}
+      >
+        Change Mode
       </button>
     </div>
   </div>
@@ -228,58 +258,77 @@ const LeaderboardScreen: React.FC<{
   leaderboard: LeaderboardEntry[]; personalBest: number | null;
   playerName: string; isConnected: boolean; onBack: () => void;
 }> = ({ leaderboard, personalBest, playerName, isConnected, onBack }) => {
-  const rankColor = (i: number) =>
-    i === 0 ? 'text-[#ccff00]' : i === 1 ? 'text-zinc-300' : i === 2 ? 'text-amber-600' : 'text-zinc-600';
+  const rowStyle = (i: number, name: string) => {
+    if (name === playerName) return 'bg-[#ffea00] text-black font-black';
+    if (i === 0) return `bg-[${CLR_YELLOW}] text-black font-black`;
+    if (i === 1) return `bg-[${CLR_BLUE}] text-white font-bold`;
+    if (i === 2) return `bg-[${CLR_RED}] text-white font-bold`;
+    return 'bg-white text-black';
+  };
+
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/90 backdrop-blur-xl">
-      <div className="w-full max-w-md px-6 py-4 flex flex-col h-full max-h-[85vh]">
-        <div className="flex items-center justify-between mb-6 shrink-0">
+    <div className="absolute inset-0 flex flex-col items-center justify-center z-30" style={{ background: `${BG_DEEP}f5` }}>
+      <div className="w-full max-w-md px-5 py-4 flex flex-col h-full max-h-[88vh]">
+
+        {/* Header */}
+        <div className={`flex items-center justify-between mb-4 bg-white rounded-xl px-4 py-3 shrink-0 ${neo}`}>
           <div className="flex items-center gap-2.5">
-            <ListOrdered className="w-6 h-6 text-[#ccff00]" />
-            <h2 className="text-lg font-bold text-white tracking-widest uppercase">Leaderboard</h2>
+            <ListOrdered className="w-5 h-5 text-[#ff0033]" />
+            <h2 className="text-lg font-black text-black uppercase tracking-tight">Leaderboard</h2>
           </div>
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-mono ${isConnected ? 'bg-green-950/50 border-green-800/60 text-green-400' : 'bg-red-950/50 border-red-800/60 text-red-400'}`}>
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border-[2px] text-[10px] font-black uppercase ${
+            isConnected
+              ? 'border-black bg-[#ffea00] text-black'
+              : 'border-black bg-white text-black/50'
+          }`}>
             {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-            {isConnected ? 'LIVE' : 'OFFLINE'}
+            {isConnected ? 'Live' : 'Offline'}
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-y-auto bg-white/5 rounded-xl border border-white/10 mb-4 custom-scrollbar">
+        {/* List */}
+        <div className={`flex-1 min-h-0 overflow-y-auto rounded-xl mb-4 custom-scrollbar ${neo} bg-white`}>
           {leaderboard.length === 0 ? (
-            <div className="p-8 text-center text-zinc-500 text-sm">
+            <div className="p-8 text-center text-black/40 text-sm font-bold">
               {isConnected ? <p>No records yet.<br />Be the first!</p> : (
-                <div className="flex flex-col items-center gap-2"><Loader2 className="w-5 h-5 animate-spin text-[#ccff00]" /><span>Connecting…</span></div>
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin text-[#ff0033]" />
+                  <span>Connecting…</span>
+                </div>
               )}
             </div>
           ) : (
-            <div className="divide-y divide-white/5">
-              <div className="flex items-center px-4 py-2.5 bg-white/5 text-[9px] text-zinc-500 font-bold uppercase tracking-widest sticky top-0 backdrop-blur-md">
-                <span className="w-10">Rank</span><span className="flex-1">Player</span>
-                <span className="w-16 text-center">Mode</span><span className="w-14 text-right">Time</span>
+            <div className="divide-y-[2px] divide-black">
+              <div className="flex items-center px-4 py-2 bg-black text-[#ffea00] text-[9px] font-black uppercase tracking-widest sticky top-0">
+                <span className="w-10">Rank</span>
+                <span className="flex-1">Player</span>
+                <span className="w-14 text-center">Mode</span>
+                <span className="w-14 text-right">Time</span>
               </div>
               {leaderboard.map((e, i) => (
-                <div key={e.id ?? i} className={`flex items-center px-4 py-3 text-sm ${e.name === playerName ? 'bg-[#ccff00]/10' : 'hover:bg-white/5'}`}>
-                  <span className={`font-mono font-bold w-10 text-xs ${rankColor(i)}`}>#{i + 1}</span>
-                  <span className={`flex-1 font-bold ${e.name === playerName ? 'text-[#ccff00]' : 'text-white'}`}>{e.name}</span>
-                  <span className="w-16 text-center text-[9px] text-zinc-500 uppercase">{e.difficulty ?? '—'}</span>
-                  <span className="font-mono text-[#ccff00] w-14 text-right">{fmt(e.time)}</span>
+                <div key={e.id ?? i} className={`flex items-center px-4 py-3 text-sm border-b-[2px] border-black last:border-b-0 ${rowStyle(i, e.name)}`}>
+                  <span className="font-black w-10 text-xs font-mono">#{i + 1}</span>
+                  <span className="flex-1 font-black">{e.name}</span>
+                  <span className="w-14 text-center text-[9px] font-bold uppercase opacity-70">{e.difficulty ?? '—'}</span>
+                  <span className="font-black font-mono w-14 text-right">{fmt(e.time)}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
 
+        {/* Personal best */}
         {personalBest !== null && (
-          <div className="bg-[#ccff00]/10 rounded-xl px-4 py-3 mb-4 border border-[#ccff00]/20 flex items-center justify-between shrink-0">
+          <div className={`bg-[${CLR_YELLOW}] rounded-xl px-4 py-3 mb-4 flex items-center justify-between shrink-0 ${neo}`}>
             <div className="flex items-center gap-2">
-              <Star className="w-4 h-4 text-[#ccff00]" fill="currentColor" />
-              <span className="text-xs font-bold text-white uppercase tracking-wider">Your Best</span>
+              <Star className="w-4 h-4 text-black" fill="currentColor" />
+              <span className="text-xs font-black text-black uppercase tracking-wider">Your Best</span>
             </div>
-            <span className="font-mono font-bold text-lg text-[#ccff00]">{fmt(personalBest)}</span>
+            <span className="font-black font-mono text-xl text-black">{fmt(personalBest)}</span>
           </div>
         )}
 
-        <button onClick={onBack} className="w-full bg-[#ccff00] hover:bg-[#b3e600] text-black font-bold py-3 rounded-full flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#ccff00]/20 cursor-pointer shrink-0">
+        <button onClick={onBack} className={`w-full bg-[${CLR_RED}] text-white font-black py-3 rounded-xl flex items-center justify-center gap-2 shrink-0 ${neoBtn}`}>
           <RotateCcw size={16} /> Back to Game
         </button>
       </div>
@@ -322,33 +371,25 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
   const lastPinchRef = useRef(0);
   const lastFrameRef = useRef<BoardCoords | null>(null);
   const fistRef = useRef<number | null>(null);
-  const releaseFramesRef = useRef(0); // consecutive non-pinch frames needed to drop
+  const releaseFramesRef = useRef(0);
 
   // Leaderboard sync
   useEffect(() => {
     if (!LEADERBOARD_ENABLED || !supabase) return;
     setIsConnected(false);
-
     const fetchScores = async () => {
       const { data, error } = await supabase!
-        .from('leaderboard')
-        .select('*')
-        .order('time', { ascending: true })
-        .limit(50);
+        .from('leaderboard').select('*').order('time', { ascending: true }).limit(50);
       if (error) { setIsConnected(false); return; }
       setIsConnected(true);
       setLeaderboard(data as LeaderboardEntry[]);
       localStorage.setItem('lp-lb', JSON.stringify(data));
     };
-
     fetchScores();
-
-    // Real-time: re-fetch whenever a new score is inserted
     const channel = supabase
       .channel('leaderboard-changes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leaderboard' }, fetchScores)
       .subscribe((status) => setIsConnected(status === 'SUBSCRIBED'));
-
     return () => { supabase!.removeChannel(channel); };
   }, []);
 
@@ -356,19 +397,15 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
   useEffect(() => {
     FilesetResolver.forVisionTasks(
       'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm',
-    ).then((vision) =>
-      HandLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
-          delegate: 'GPU',
-        },
-        runningMode: 'VIDEO',
-        numHands: 2,
-      })
-    ).then((hl) => {
-      hlRef.current = hl;
-      setModelLoaded(true);
-    }).catch(() => setError('AI model failed to load.'));
+    ).then((vision) => HandLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+        delegate: 'GPU',
+      },
+      runningMode: 'VIDEO',
+      numHands: 2,
+    })).then((hl) => { hlRef.current = hl; setModelLoaded(true); })
+      .catch(() => setError('AI model failed to load.'));
   }, []);
 
   // Camera
@@ -487,12 +524,20 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
           const c = lastFrameRef.current;
           const fx = (1 - c.maxX) * W, fy = c.minY * H;
           const fw = (1 - c.minX) * W - fx, fh = c.maxY * H - fy;
-          ctx.fillStyle = 'rgba(0,0,0,0.4)';
+          ctx.fillStyle = 'rgba(0,0,0,0.45)';
           ctx.fillRect(0, 0, W, fy); ctx.fillRect(0, fy + fh, W, H - fy - fh);
           ctx.fillRect(0, fy, fx, fh); ctx.fillRect(fx + fw, fy, W - fx - fw, fh);
-          drawBrackets(ctx, fx, fy, fw, fh, ACCENT);
-          ctx.save(); ctx.font = 'bold 11px monospace'; ctx.fillStyle = ACCENT;
-          ctx.textAlign = 'left'; ctx.fillText('PINCH TO CAPTURE', fx + 2, fy - 8); ctx.restore();
+          drawBrackets(ctx, fx, fy, fw, fh, CLR_YELLOW, 28, 4);
+          ctx.save();
+          ctx.font = 'bold 11px monospace';
+          ctx.fillStyle = '#000';
+          const labelW = ctx.measureText('PINCH TO CAPTURE').width + 16;
+          ctx.fillStyle = CLR_YELLOW;
+          ctx.fillRect(fx, fy - 24, labelW, 20);
+          ctx.fillStyle = '#000';
+          ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+          ctx.fillText('PINCH TO CAPTURE', fx + 8, fy - 14);
+          ctx.restore();
         }
       }
     }
@@ -530,16 +575,14 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
 
       if (gameState === 'PLAYING') {
         if (pinching) {
-          fistRef.current = null; // clear any partial fist hold
-          releaseFramesRef.current = 0; // reset drop debounce while pinching
+          fistRef.current = null;
+          releaseFramesRef.current = 0;
           if (!dragRef.current.on && hover !== null) {
             dragRef.current = { on: true, idx: hover };
             sounds.pick();
           }
         } else if (dragRef.current.on) {
           releaseFramesRef.current++;
-          // require 5 consecutive non-pinch frames before registering a drop
-          // prevents accidental drops from brief tracking glitches during fast movement
           if (releaseFramesRef.current >= 5) {
             const si = dragRef.current.idx;
             if (si !== null && hover !== null && si !== hover) {
@@ -561,10 +604,10 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
       renderBoard(ctx, imgRef.current, tilesRef.current, cols, rows, bw, bh,
         dragRef.current.on && dragRef.current.idx !== null ? { index: dragRef.current.idx, x: rx, y: ry } : null, hover);
       const solved = gameState === 'SOLVED';
-      ctx.shadowColor = solved ? ACCENT : 'transparent';
-      ctx.shadowBlur = solved ? 16 : 0;
-      ctx.strokeStyle = solved ? ACCENT : 'rgba(255,255,255,0.35)';
-      ctx.lineWidth = solved ? 3 : 1.5;
+      ctx.shadowColor = solved ? CLR_RED : 'transparent';
+      ctx.shadowBlur = solved ? 20 : 0;
+      ctx.strokeStyle = solved ? CLR_RED : CLR_BLUE;
+      ctx.lineWidth = solved ? 4 : 3;
       ctx.strokeRect(1, 1, bw - 2, bh - 2);
       ctx.restore();
 
@@ -573,10 +616,10 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
         ctx.save();
         ctx.beginPath(); ctx.arc(cx, cy, 9, 0, Math.PI * 2);
         if (dragRef.current.on) {
-          ctx.fillStyle = ACCENT; ctx.fill();
+          ctx.fillStyle = CLR_RED; ctx.fill();
         } else {
-          ctx.strokeStyle = ACCENT; ctx.lineWidth = 2; ctx.stroke();
-          ctx.strokeStyle = `${ACCENT}70`; ctx.lineWidth = 1;
+          ctx.strokeStyle = CLR_RED; ctx.lineWidth = 2.5; ctx.stroke();
+          ctx.strokeStyle = `${CLR_RED}70`; ctx.lineWidth = 1;
           ctx.beginPath();
           ctx.moveTo(cx - 15, cy); ctx.lineTo(cx - 11, cy);
           ctx.moveTo(cx + 11, cy); ctx.lineTo(cx + 15, cy);
@@ -587,7 +630,7 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
         ctx.restore();
       }
 
-      // Fist → reset (skip while pinching so tile-drag doesn't trigger it)
+      // Fist → reset
       if (hand && gameState === 'PLAYING' && !pinching) {
         const wrist = hand[0];
         const tips = [8, 12, 16, 20], pips = [6, 10, 14, 18];
@@ -602,15 +645,17 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
           const p = Math.min((performance.now() - fistRef.current) / RESET_DWELL_MS, 1);
           const fcx = W / 2, fcy = H / 2;
           ctx.save();
-          ctx.beginPath(); ctx.arc(fcx, fcy, 42, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(0,0,0,0.72)'; ctx.fill();
-          ctx.beginPath(); ctx.arc(fcx, fcy, 42, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
-          ctx.strokeStyle = ACCENT; ctx.lineWidth = 4.5; ctx.lineCap = 'round'; ctx.stroke();
-          ctx.fillStyle = 'white'; ctx.font = 'bold 12px monospace';
+          ctx.beginPath(); ctx.arc(fcx, fcy, 44, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(0,0,0,0.8)'; ctx.fill();
+          ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(fcx, fcy, 44, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
+          ctx.strokeStyle = CLR_YELLOW; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.stroke();
+          ctx.fillStyle = 'white'; ctx.font = 'bold 13px monospace';
           ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText('RESET', fcx, fcy - 5);
-          ctx.font = '9px monospace'; ctx.fillStyle = 'rgba(255,255,255,0.45)';
-          ctx.fillText('hold fist', fcx, fcy + 9);
+          ctx.fillText('RESET', fcx, fcy - 6);
+          ctx.font = '9px monospace'; ctx.fillStyle = 'rgba(255,255,255,0.5)';
+          ctx.fillText('hold fist', fcx, fcy + 10);
           ctx.restore();
           if (p >= 1) resetGame();
         } else { fistRef.current = null; }
@@ -621,8 +666,8 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
     if (results?.landmarks && duRef.current && gameState !== 'LEADERBOARD') {
       for (const lm of results.landmarks) {
         ctx.save(); ctx.translate(W, 0); ctx.scale(-1, 1);
-        duRef.current.drawConnectors(lm, HandLandmarker.HAND_CONNECTIONS, { color: 'rgba(255,255,255,0.5)', lineWidth: 2 });
-        duRef.current.drawLandmarks(lm, { color: 'rgba(255,255,255,0.75)', radius: 2.5, lineWidth: 1 });
+        duRef.current.drawConnectors(lm, HandLandmarker.HAND_CONNECTIONS, { color: 'rgba(255,255,255,0.45)', lineWidth: 2 });
+        duRef.current.drawLandmarks(lm, { color: 'rgba(255,255,255,0.7)', radius: 2.5, lineWidth: 1 });
         ctx.restore();
       }
     }
@@ -636,21 +681,26 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
   }, [renderLoop]);
 
   return (
-    <div className="relative w-full h-full bg-black overflow-hidden rounded-xl">
+    <div className="relative w-full h-full overflow-hidden rounded-xl" style={{ background: BG_SURFACE }}>
       <video ref={videoRef} className="hidden" playsInline muted autoPlay />
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover" />
 
       {gameState === 'PLAYING' && <TimerDisplay time={timeElapsed} />}
 
       {gameState === 'SCANNING' && (
-        <div className="absolute top-6 left-6 z-30 flex gap-2">
-          <button onClick={onMenu} className="flex items-center gap-1.5 bg-zinc-900/80 text-white px-3 py-2 rounded-full border border-white/10 hover:bg-zinc-800 transition-colors cursor-pointer text-xs font-bold uppercase tracking-wider pointer-events-auto">
+        <div className="absolute top-5 left-5 z-30 flex gap-2">
+          <button
+            onClick={onMenu}
+            className={`bg-white text-black font-black text-xs uppercase tracking-wider px-3 py-2 rounded-xl flex items-center gap-1.5 pointer-events-auto ${neoBtn}`}
+          >
             ← Difficulty
           </button>
           {LEADERBOARD_ENABLED && (
-            <button onClick={() => setGameState('LEADERBOARD')} className="flex items-center gap-2 bg-zinc-900/80 text-white px-3 py-2 rounded-full border border-white/10 hover:bg-zinc-800 transition-colors cursor-pointer pointer-events-auto">
-              <ListOrdered className="w-4 h-4 text-[#ccff00]" />
-              <span className="text-xs font-bold uppercase tracking-wider">Scores</span>
+            <button
+              onClick={() => setGameState('LEADERBOARD')}
+              className={`bg-[${CLR_YELLOW}] text-black font-black text-xs uppercase tracking-wider px-3 py-2 rounded-xl flex items-center gap-1.5 pointer-events-auto ${neoBtn}`}
+            >
+              <ListOrdered className="w-3.5 h-3.5" /> Scores
             </button>
           )}
         </div>
@@ -675,34 +725,39 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
 
       {gameState === 'PLAYING' && (
         <>
-          <button onClick={resetGame} title="Reset" className="absolute bottom-6 left-6 z-20 bg-zinc-800/80 hover:bg-zinc-700 text-white p-3 rounded-full border border-white/10 transition-colors pointer-events-auto cursor-pointer">
+          <button
+            onClick={resetGame}
+            title="Reset"
+            className={`absolute bottom-5 left-5 z-20 bg-white text-black p-3 rounded-xl pointer-events-auto ${neoBtn}`}
+          >
             <RotateCcw size={18} />
           </button>
-          <div className="absolute bottom-6 right-6 z-10 flex items-center gap-1.5 text-white/35 text-[10px] pointer-events-none">
+          <div className="absolute bottom-5 right-5 z-10 flex items-center gap-1.5 text-white/40 text-[10px] font-bold uppercase tracking-wider pointer-events-none">
             <Hand className="w-3.5 h-3.5" /><span>Pinch to grab</span>
           </div>
         </>
       )}
 
+      {/* Loading states */}
       {!cameraReady && !error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 z-20 gap-4">
-          <Loader2 className="w-10 h-10 animate-spin text-[#ccff00]" />
-          <p className="text-xs tracking-widest uppercase text-zinc-400">Starting Camera</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 gap-4" style={{ background: BG_DEEP }}>
+          <Loader2 className="w-10 h-10 animate-spin text-[#ffea00]" />
+          <p className="text-xs tracking-widest uppercase font-black text-white/50">Starting Camera</p>
         </div>
       )}
       {cameraReady && !modelLoaded && !error && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-black/60 backdrop-blur px-3 py-1.5 rounded-full border border-[#ccff00]/30">
-          <Loader2 className="w-3 h-3 animate-spin text-[#ccff00]" />
-          <span className="text-[10px] uppercase tracking-widest text-[#ccff00]">Loading AI Model</span>
+        <div className={`absolute top-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 bg-[${CLR_YELLOW}] text-black px-3 py-1.5 rounded-xl ${neo} font-black text-[10px] uppercase tracking-widest`}>
+          <Loader2 className="w-3 h-3 animate-spin" />
+          Loading AI Model
         </div>
       )}
       {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/95 z-30 p-8 text-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center">
-            <span className="text-red-400 text-xl font-bold">!</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-30 p-8 text-center gap-4" style={{ background: BG_DEEP }}>
+          <div className={`w-14 h-14 rounded-xl bg-[${CLR_RED}] flex items-center justify-center ${neo}`}>
+            <span className="text-white text-2xl font-black">!</span>
           </div>
-          <p className="font-bold text-red-400">Something went wrong</p>
-          <p className="text-sm text-zinc-500">{error}</p>
+          <p className="font-black text-white text-lg">Something went wrong</p>
+          <p className="text-sm font-medium" style={{ color: '#527cad' }}>{error}</p>
         </div>
       )}
     </div>
@@ -713,23 +768,37 @@ const GestureCamera: React.FC<GestureCameraProps> = ({ cols, rows, difficulty, o
 const DifficultyCard: React.FC<{ d: Difficulty; selected: boolean; onClick: () => void }> = ({ d, selected, onClick }) => {
   const cfg = GRID[d];
   const Icon = d === 'easy' ? Zap : d === 'medium' ? Target : Flame;
-  const accent = d === 'easy' ? '#ccff00' : d === 'medium' ? '#fb923c' : '#f87171';
-  const borderClass = selected
-    ? d === 'easy' ? 'border-[#ccff00] bg-[#ccff00]/10'
-      : d === 'medium' ? 'border-orange-400 bg-orange-400/10'
-      : 'border-red-400 bg-red-400/10'
-    : 'border-white/10 hover:border-white/20';
+
+  const colors = {
+    easy:   { bg: CLR_YELLOW, tint: '#fffde5', shadow: CLR_YELLOW, text: '#000', lightText: '#000' },
+    medium: { bg: CLR_BLUE,   tint: '#e5edff', shadow: CLR_BLUE,   text: '#fff', lightText: '#000' },
+    hard:   { bg: CLR_RED,    tint: '#ffe5eb', shadow: CLR_RED,    text: '#fff', lightText: '#000' },
+  };
+  const { bg, tint, shadow, text } = colors[d];
+
+  const cardStyle = selected
+    ? { background: bg,   boxShadow: '4px 4px 0px 0px #000', border: '3px solid #000' }
+    : { background: tint, boxShadow: `4px 4px 0px 0px ${shadow}`, border: `3px solid ${shadow}` };
+
+  const cardTextColor = selected ? text : '#000';
+  const dotBg = selected
+    ? (bg === CLR_YELLOW ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.35)')
+    : `${shadow}55`;
 
   return (
-    <button onClick={onClick} className={`flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all cursor-pointer pointer-events-auto w-28 ${borderClass}`}>
-      <Icon className="w-5 h-5" style={{ color: selected ? accent : '#71717a' }} />
+    <button
+      onClick={onClick}
+      style={cardStyle}
+      className={`flex flex-col items-center gap-3 p-5 rounded-xl ${neoHover} ${neoActive} transition-all duration-75 cursor-pointer pointer-events-auto w-32`}
+    >
+      <Icon className="w-5 h-5" style={{ color: selected ? cardTextColor : shadow }} />
       <div className="text-center">
-        <p className="text-white font-bold text-sm">{cfg.label}</p>
-        <p className="text-zinc-500 text-xs">{cfg.desc}</p>
+        <p className="font-black text-sm" style={{ color: cardTextColor }}>{cfg.label}</p>
+        <p className="text-[11px] font-bold opacity-60" style={{ color: cardTextColor }}>{cfg.desc}</p>
       </div>
       <div className="grid gap-0.5" style={{ gridTemplateColumns: `repeat(${cfg.cols}, 1fr)` }}>
         {Array.from({ length: cfg.cols * cfg.rows }).map((_, i) => (
-          <div key={i} className="w-2 h-2 rounded-sm" style={{ background: selected ? `${accent}99` : 'rgba(255,255,255,0.15)' }} />
+          <div key={i} className="w-2 h-2 rounded-sm" style={{ background: dotBg }} />
         ))}
       </div>
     </button>
@@ -739,16 +808,26 @@ const DifficultyCard: React.FC<{ d: Difficulty; selected: boolean; onClick: () =
 const MenuScreen: React.FC<{ onStart: (d: Difficulty) => void }> = ({ onStart }) => {
   const [selected, setSelected] = useState<Difficulty>('easy');
   return (
-    <div className="w-screen h-screen flex flex-col items-center justify-center bg-zinc-950" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');`}</style>
+    <div className="w-screen h-screen flex flex-col items-center justify-center" style={{ background: BG_DEEP, fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800;900&display=swap');
+      `}</style>
+
       <div className="flex flex-col items-center gap-8 max-w-sm w-full px-6">
+
+        {/* Logo */}
         <div className="text-center">
-          <h1 className="text-4xl font-bold tracking-widest text-[#ccff00] uppercase mb-2">Snapzzle</h1>
-          <p className="text-zinc-500 text-xs tracking-wide">Frame it to Snap &middot; Pinch &amp; Drag to Solve</p>
+          <div className="inline-block px-6 py-3 rounded-2xl mb-4" style={{ background: CLR_YELLOW, border: '3px solid #000', boxShadow: '5px 5px 0px 0px rgba(255,255,255,0.25)' }}>
+            <h1 className="text-5xl font-black text-black uppercase tracking-tight">Snapzzle</h1>
+          </div>
+          <p className="font-bold" style={{ color: '#527cad', fontSize: '12px', letterSpacing: '0.05em' }}>
+            Frame it · Snap it · Solve it
+          </p>
         </div>
 
+        {/* Difficulty */}
         <div className="flex flex-col items-center gap-4 w-full">
-          <p className="text-zinc-500 text-[10px] uppercase tracking-widest">Select Difficulty</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: '#527cad' }}>Select Difficulty</p>
           <div className="flex gap-3 justify-center">
             {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
               <DifficultyCard key={d} d={d} selected={selected === d} onClick={() => setSelected(d)} />
@@ -756,16 +835,18 @@ const MenuScreen: React.FC<{ onStart: (d: Difficulty) => void }> = ({ onStart })
           </div>
         </div>
 
+        {/* Start */}
         <button
           onClick={() => { sounds.initialize(); onStart(selected); }}
-          className="w-full bg-[#ccff00] hover:bg-[#b3e600] text-black font-bold py-4 rounded-full flex items-center justify-center gap-2 text-lg transition-all hover:scale-105 active:scale-95 shadow-lg shadow-[#ccff00]/20 cursor-pointer pointer-events-auto"
+          className={`w-full text-white font-black py-4 rounded-lg flex items-center justify-center gap-2 text-lg uppercase tracking-wide pointer-events-auto ${neoBtn}`}
+          style={{ background: CLR_RED }}
         >
           Start Game <ArrowRight size={20} />
         </button>
 
-        <p className="text-zinc-700 text-[10px] text-center leading-5">
-          Needs webcam + hand tracking (MediaPipe)<br />
-          Best on Chrome / Edge desktop
+        <p className="font-bold text-center leading-6" style={{ color: '#31485', fontSize: '11px' }}>
+          <span style={{ color: '#314b68' }}>Needs webcam + hand tracking</span><br />
+          <span style={{ color: '#213245' }}>Best on Chrome / Edge desktop</span>
         </p>
       </div>
     </div>
@@ -780,20 +861,37 @@ export default function App() {
   if (!started) return <MenuScreen onStart={(d) => { setDifficulty(d); setStarted(true); }} />;
 
   return (
-    <div className="w-screen h-screen flex flex-col items-center justify-center bg-zinc-950" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+    <div
+      className="w-screen h-screen flex flex-col items-center justify-center"
+      style={{ background: BG_DEEP, fontFamily: '"Plus Jakarta Sans", sans-serif' }}
+    >
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800;900&display=swap');
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.35); }
       `}</style>
-      <div className="absolute top-4 left-0 right-0 text-center z-10 pointer-events-none">
-        <h1 className="text-2xl font-bold tracking-widest text-[#ccff00] uppercase">Snapzzle</h1>
-        <p className="text-zinc-600 text-xs mt-1">{GRID[difficulty].desc}</p>
+
+      {/* Top bar */}
+      <div className="absolute top-4 left-0 right-0 flex items-center justify-center gap-3 z-10 pointer-events-none">
+        <div className={`inline-flex items-center gap-2 bg-[${CLR_YELLOW}] text-black px-4 py-1.5 rounded-xl ${neo}`}>
+          <span className="font-black text-sm uppercase tracking-tight">Snapzzle</span>
+          <span className="font-bold text-xs opacity-60">{GRID[difficulty].desc}</span>
+        </div>
       </div>
-      <div className="relative w-[95vw] h-[85vh] bg-zinc-900 rounded-xl overflow-hidden shadow-2xl border border-zinc-800">
-        <GestureCamera cols={GRID[difficulty].cols} rows={GRID[difficulty].rows} difficulty={difficulty} onMenu={() => setStarted(false)} />
+
+      {/* Game frame */}
+      <div
+        className="relative w-[95vw] h-[85vh] overflow-hidden rounded-2xl"
+        style={{ border: '3px solid #000', boxShadow: '8px 8px 0px 0px #000000' }}
+      >
+        <GestureCamera
+          cols={GRID[difficulty].cols}
+          rows={GRID[difficulty].rows}
+          difficulty={difficulty}
+          onMenu={() => setStarted(false)}
+        />
       </div>
     </div>
   );
