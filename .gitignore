@@ -18,8 +18,9 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 
-# Firebase local cache
+# Firebase
 .firebase/
+.firebaserc
 
 # logs
 *.log
